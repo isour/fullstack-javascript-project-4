@@ -1,0 +1,25 @@
+plugins:
+  - jest
+
+env:
+  node: true
+  jest: true
+  es2020: true
+
+extends:
+  - "airbnb-base"
+  - "plugin:jest/recommended"
+  - "prettier"
+
+plugins:
+  - "prettier"
+
+parserOptions:
+  ecmaVersion: 11
+  sourceType: module
+
+rules:
+  prettier/prettier: "error"
+  no-console: 0
+  import/extensions: 0 # FIXME: remove when rule will be adjusted for new nodejs version
+  no-underscore-dangle: [2, { "allow": ["__filename", "__dirname"] }]
