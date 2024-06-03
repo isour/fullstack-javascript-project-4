@@ -1,49 +1,62 @@
 import axios from "axios";
-import * as fs from "fs";
 import path from "path";
+import { mkdir, writeFile } from "node:fs/promises";
 
-const loader = (url, output = "") => {
-  const getProxiedUrl = (url) => {
-    const urlResult = new URL("/get", "https://allorigins.hexlet.app");
-    urlResult.searchParams.set("url", url);
-    urlResult.searchParams.set("disableCache", "true");
-    return urlResult.toString();
-  };
-
-  const getFileName = (url) => {
-    const myURL = new URL(url);
-    const protocol = myURL.protocol;
-    return (
-      myURL.href.replace(protocol, "").replace("//", "").replace(/\W/g, "-") +
-      ".html"
-    );
-  };
-
-  const getWorkingDirectory = (fileOutput) => {
-    return path.resolve(process.cwd(), fileOutput);
-  };
-
-  const createFile = (filename, fileOutput, data) => {
-    const fullFileName = path.join(getWorkingDirectory(fileOutput), filename);
-
-    fs.writeFile(fullFileName, data, "utf8", (err) => {
-      if (err) throw err;
-
-      console.log("The file was succesfully saved!");
-    });
-  };
-
-  axios
-    .get(getProxiedUrl(url))
-    .then((response) => {
-      // console.log(response);
-      createFile(getFileName(url), output, response.data.contents);
-    })
-    .catch((error) => {
-      console.log(error);
-    });
-
-  return getFileName(url);
+const getProxiedUrl = (url) => {
+  return url;
+  // const urlResult = new URL("/get", "https://allorigins.hexlet.app");
+  // urlResult.searchParams.set("url", url);
+  // urlResult.searchParams.set("disableCache", "true");
+  // return urlResult.toString();
 };
 
-export default loader;
+const getFileName = (url) => {
+  const myURL = new URL(url);
+  const protocol = myURL.protocol;
+  return (
+    myURL.href.replace(protocol, "").replace("//", "").replace(/\W/g, "-") +
+    ".html"
+  );
+};
+
+const getWorkingDirectory = (fileOutput) => {
+  return path.resolve(process.cwd(), fileOutput);
+};
+
+const createFile = (filePath, data) => {
+  return writeFile(filePath, data, "utf8");
+};
+
+const prepareCatalog = (catalogPath) => {
+  return (
+    mkdir(catalogPath, { recursive: true })
+      // .then((result) => {
+      //   console.log(result, "suecces");
+      // })
+      .catch((e) => {
+        console.log(e);
+      })
+  );
+};
+
+export const loader = (url, outputDirectory = process.cwd()) => {
+  const filePath = path.join(
+    getWorkingDirectory(outputDirectory),
+    getFileName(url)
+  );
+
+  const promises = [
+    prepareCatalog(outputDirectory),
+    axios.get(getProxiedUrl(url)),
+  ];
+
+  return Promise.all(promises)
+    .then(([, response]) => {
+      return writeFile(filePath, response.data, "utf8");
+    })
+    .then(() => {
+      return {
+        filePath,
+      };
+    });
+};

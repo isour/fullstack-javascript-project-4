@@ -1,21 +1,15 @@
 #!/usr/bin/env node
 
 import { program } from "commander";
-import { createRequire } from "module";
-import loader from "../index.js";
-
-const require = createRequire(import.meta.url);
-const packageFile = require("../package.json");
+import { loader } from "../index.js";
+import packageFile from "../package.json" assert { type: "json" };
 
 program
   .version(packageFile.version)
   .description(packageFile.description)
   .usage("[options]")
-  .option(
-    "-o, --output <dir>",
-    'output dir (default: "/home/user/current-dir")'
-  )
+  .option("-o, --output <dir>", "output dir")
   .action(() => {
-    console.log(loader(program.args[0], program.opts().output));
+    loader(program.args[0], program.opts().output);
   })
   .parse();
