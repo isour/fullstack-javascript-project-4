@@ -10,6 +10,14 @@ program
   .usage("[options]")
   .option("-o, --output <dir>", "output dir")
   .action(() => {
-    loader(program.args[0], program.opts().output);
+    loader(program.args[0], program.opts().output)
+    .then(({filePath}) => {
+      console.log(`URL successfully downloaded to ${filePath}`);
+      process.exit(1);
+    })
+    .catch((error) => {
+      console.error(error.message);
+      process.exit(1);
+    })
   })
   .parse();
