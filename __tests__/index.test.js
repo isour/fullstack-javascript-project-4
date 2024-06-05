@@ -123,6 +123,9 @@ describe("positive end", () => {
     const { data: expectedData, filePath } = assets.find(
       (asset) => asset.url === assetName
     );
+
+    await expect(fsp.access(filePath)).resolves.not.toThrow();
+
     const assetData = await fsp.readFile(filePath);
 
     await expect(assetData).toEqual(expectedData);

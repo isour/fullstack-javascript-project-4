@@ -15,17 +15,6 @@ const getWorkingDirectory = (fileOutput) => {
   return path.resolve(process.cwd(), fileOutput);
 };
 
-const prepareCatalogs = (catalogPath, fileName) => {
-  const dirName = `${catalogPath}/${fileName}_files`;
-  log("create working & assets directories: ", dirName, "and", catalogPath);
-
-  console.log("prepareCatalogs", dirName);
-
-  return mkdir(dirName, { recursive: true }).then(() => {
-    return { catalogPath };
-  });
-};
-
 const tagToAttrMap = {
   img: "src",
   source: "srcset",
@@ -97,18 +86,13 @@ export default (url, outputDirectory = process.cwd()) => {
   const urlObject = new URL(url);
   const hostname = `${urlObject.protocol}//${urlObject.hostname}`;
   const assetsDirName = `${outputDirectory}/${fileName}_files`;
-  console.log(assetsDirName, outputDirectory);
 
   const filePath = path.join(
     getWorkingDirectory(outputDirectory),
     `${fileName}.html`
   );
 
-  const promises = [
-    // prepareCatalogs(outputDirectory, fileName),
-    mkdir(assetsDirName),
-    axios.get(url),
-  ];
+  const promises = [mkdir(assetsDirName), axios.get(url)];
 
   return Promise.all(promises)
     .then(([, response]) => {
