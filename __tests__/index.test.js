@@ -12,8 +12,8 @@ const testingDomain = 'https://ru.hexlet.io';
 const testingURI = '/courses';
 const testingURL = `${testingDomain}${testingURI}`;
 
-let expectedFileContent; let
-  sourceFileContent;
+let expectedFileContent;
+let sourceFileContent;
 
 const getFixturesPath = (...paths) => path.join(dirname, '..', '__fixtures__', ...paths);
 
@@ -37,6 +37,9 @@ let assets = [
 ];
 
 const assetsNames = assets.map((asset) => asset.url);
+
+const scope = nock(testingDomain).persist();
+nock.disableNetConnect();
 
 beforeAll(async () => {
   sourceFileContent = await fsp.readFile(
@@ -64,9 +67,6 @@ beforeAll(async () => {
 
   assets = await Promise.all(promises);
 });
-
-const scope = nock(testingDomain).persist();
-nock.disableNetConnect();
 
 describe('negative end', () => {
   let tempPath = '';
