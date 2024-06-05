@@ -14,7 +14,6 @@ const testingURI = `/${testName}`;
 const testingURL = `${testingDomain}${testingURI}`;
 
 let expectedFileContent, sourceFileContent;
-let tempPath = "";
 
 const getFixturesPath = (...paths) =>
   path.join(dirname, "..", "__fixtures__", ...paths);
@@ -70,27 +69,28 @@ beforeAll(async () => {
 const scope = nock(testingDomain).persist();
 nock.disableNetConnect();
 
-beforeEach(async () => {
-  tempPath = await fsp.mkdtemp(path.join(os.tmpdir(), "page-loader-"));
-});
-
-afterEach(async () => {
-  await fsp.rmdir(tempPath, { recursive: true });
-});
-
 describe("negative end", () => {
-  test('bad response', async () => {
-    const invalidURL = 'https://wrong.address';
+  let tempPath = "";
+
+  beforeAll(async () => {
+    tempPath = await fsp.mkdtemp(path.join(os.tmpdir(), "page-loader-"));
+  });
+
+  test("bad response", async () => {
+    const invalidURL = "https://wrong.address";
     const error = `getaddrinfo ENOTFOUND ${invalidURL}`;
-    nock(invalidURL).persist().get('/').replyWithError(error);
+    nock(invalidURL).persist().get("/").replyWithError(error);
 
     await expect(loader(invalidURL, tempPath)).rejects.toThrow(error);
   });
 
-  test('access rights', async () => {
+  test("fs problems", async () => {
     await expect(loader(testingURL, `/root`)).rejects.toThrow();
+
+    const filepath = "bad path";
+    await expect(loader(testingURL, filepath)).rejects.toThrow();
   });
-  
+
   test.each([404, 500])("code %s", async (code) => {
     scope.get(`/${code}`).reply(code, "");
 
@@ -102,8 +102,10 @@ describe("negative end", () => {
 
 describe("positive end", () => {
   let createdFilePath = "";
+  let tempPath = "";
 
   beforeAll(async () => {
+    tempPath = await fsp.mkdtemp(path.join(os.tmpdir(), "page-loader-"));
     const { filePath } = await loader(testingURL, `${tempPath}`);
 
     createdFilePath = filePath;

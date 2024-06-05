@@ -2,13 +2,13 @@ import axios from "axios";
 import path from "path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
-import log from './src/debug.js';
-import Listr from 'listr';
+import log from "./src/debug.js";
+import Listr from "listr";
 
 const getFileName = (url) => {
   const myURL = new URL(url.trim());
-  const myPath = myURL.pathname === '/' ? '' : myURL.pathname;
-  return (myURL.hostname + myPath).replaceAll(".", "-").replaceAll("/", "-")
+  const myPath = myURL.pathname === "/" ? "" : myURL.pathname;
+  return (myURL.hostname + myPath).replaceAll(".", "-").replaceAll("/", "-");
 };
 
 const getWorkingDirectory = (fileOutput) => {
@@ -17,13 +17,13 @@ const getWorkingDirectory = (fileOutput) => {
 
 const prepareCatalogs = (catalogPath, fileName) => {
   const dirName = `${catalogPath}/${fileName}_files`;
-  log('create working & assets directories: ', dirName, 'and', catalogPath);
-  
-  return mkdir(dirName, { recursive: true }).then(
-    () => {
-      return { catalogPath };
-    }
-  );
+  log("create working & assets directories: ", dirName, "and", catalogPath);
+
+  console.log("prepareCatalogs", dirName);
+
+  return mkdir(dirName, { recursive: true }).then(() => {
+    return { catalogPath };
+  });
 };
 
 const tagToAttrMap = {
@@ -33,7 +33,7 @@ const tagToAttrMap = {
   script: "src",
 };
 
-const isValidUrl = (url, currentHostname) => {  
+const isValidUrl = (url, currentHostname) => {
   if (!url) return true;
   try {
     const curURL = new URL(url);
@@ -50,19 +50,17 @@ const isValidUrl = (url, currentHostname) => {
 };
 
 const getAssetsPath = (fileURL, catalogPath, hostname) => {
-  log('ASSET', fileURL, catalogPath, hostname)
-  const filePath = (new URL(fileURL, hostname)).pathname;
-  const ext = path.extname(fileURL) ? '' : '.html';
-  
+  const filePath = new URL(fileURL, hostname).pathname;
+  const ext = path.extname(fileURL) ? "" : ".html";
+
   return path.join(
-    catalogPath + "_files/",
     path.basename(hostname).replaceAll(".", "-") +
       "-" +
       filePath
         .split("/")
         .filter((el) => el !== "")
         .join("-") +
-        ext
+      ext
   );
 };
 
@@ -79,10 +77,10 @@ const processAssets = (htmlData, outputPath, hostname, catalogPath) => {
     if (!isValidUrl(attrURL, hostname)) {
       const filePath = getAssetsPath(attrURL, outputPath, hostname);
       assetsList.push({
-        fileURL: (new URL(attrURL, hostname)).toString(),
+        fileURL: new URL(attrURL, hostname).toString(),
         filePath: `${catalogPath}/${filePath}`,
       });
-      element.setAttribute(attrName, filePath);
+      element.setAttribute(attrName, `${outputPath}_files/${filePath}`);
     }
   });
 
@@ -92,12 +90,14 @@ const processAssets = (htmlData, outputPath, hostname, catalogPath) => {
 };
 
 export default (url, outputDirectory = process.cwd()) => {
-  log('url: ', url);
-  log('directory: ', outputDirectory);
+  log("url: ", url);
+  log("directory: ", outputDirectory);
   const fileName = getFileName(url);
-  log('fileName: ', fileName);
+  log("fileName: ", fileName);
   const urlObject = new URL(url);
   const hostname = `${urlObject.protocol}//${urlObject.hostname}`;
+  const assetsDirName = `${outputDirectory}/${fileName}_files`;
+  console.log(assetsDirName, outputDirectory);
 
   const filePath = path.join(
     getWorkingDirectory(outputDirectory),
@@ -105,34 +105,37 @@ export default (url, outputDirectory = process.cwd()) => {
   );
 
   const promises = [
-    prepareCatalogs(outputDirectory, fileName),
+    // prepareCatalogs(outputDirectory, fileName),
+    mkdir(assetsDirName),
     axios.get(url),
   ];
 
   return Promise.all(promises)
-    .then(([{ catalogPath }, response]) => {
-      return processAssets(response.data, fileName, hostname, catalogPath);
+    .then(([, response]) => {
+      return processAssets(response.data, fileName, hostname, assetsDirName);
     })
     .then(({ html, assets }) => {
-      log('write html file:', filePath);
+      log("write html file:", filePath);
       writeFile(filePath, html, "utf8");
       return {
-        assets
-      }
+        assets,
+      };
     })
     .then(({ assets }) => {
-      const listTasks = assets.map(({ fileURL: assetURL, filePath: assetPath }) => {
-        return {
-          title: assetURL,
-          task: () => {
-            axios
-              .get(assetURL, { responseType: "arraybuffer" })
-              .then(({ data: assetData }) => {
-                return writeFile(assetPath, assetData);
-              })
-          },
-        };
-      });
+      const listTasks = assets.map(
+        ({ fileURL: assetURL, filePath: assetPath }) => {
+          return {
+            title: assetURL,
+            task: () => {
+              axios
+                .get(assetURL, { responseType: "arraybuffer" })
+                .then(({ data: assetData }) => {
+                  return writeFile(assetPath, assetData);
+                });
+            },
+          };
+        }
+      );
       const listr = new Listr(listTasks, { concurrent: true });
       return listr.run();
     })
