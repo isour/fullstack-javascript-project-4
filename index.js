@@ -110,13 +110,13 @@ export default (url, outputDirectory = process.cwd()) => {
         ({ fileURL: assetURL, filePath: assetPath }) => {
           return {
             title: assetURL,
-            task: () => {
+            task: () =>
               axios
                 .get(assetURL, { responseType: "arraybuffer" })
                 .then(({ data: assetData }) => {
                   return writeFile(assetPath, assetData);
-                });
-            },
+                })
+                .catch((e) => console.log),
           };
         }
       );
