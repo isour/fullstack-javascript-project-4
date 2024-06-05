@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { program } from "commander";
-import { loader } from "../index.js";
+import loader from "../index.js";
 import packageFile from "../package.json" assert { type: "json" };
 
 program

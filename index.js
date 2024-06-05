@@ -91,7 +91,7 @@ const processAssets = (htmlData, outputPath, hostname, catalogPath) => {
   });
 };
 
-export const loader = (url, outputDirectory = process.cwd()) => {
+export default (url, outputDirectory = process.cwd()) => {
   log('url: ', url);
   log('directory: ', outputDirectory);
   const fileName = getFileName(url);

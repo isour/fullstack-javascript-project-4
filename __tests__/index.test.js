@@ -4,7 +4,7 @@ import path from "path";
 import url from "url";
 import nock from "nock";
 
-import { loader } from "../index";
+import loader from "../index";
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
