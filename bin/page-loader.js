@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 
-import { program } from "commander";
-import loader from "../index.js";
-import packageFile from "../package.json" assert { type: "json" };
+import { program } from 'commander';
+import fs from 'fs';
+import loader from '../index.js';
+
+const packageFile = JSON.parse(fs.readFileSync('./package.json'));
 
 program
   .version(packageFile.version)
   .description(packageFile.description)
-  .usage("[options]")
-  .option("-o, --output <dir>", "output dir")
+  .usage('[options]')
+  .option('-o, --output <dir>', 'output dir')
   .action(() => {
     loader(program.args[0], program.opts().output)
       .then(({ filePath }) => {
