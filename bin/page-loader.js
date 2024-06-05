@@ -1,14 +1,11 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
-import fs from 'fs';
 import loader from '../index.js';
 
-const packageFile = JSON.parse(fs.readFileSync('./package.json'));
-
 program
-  .version(packageFile.version)
-  .description(packageFile.description)
+  .version('1.0.0')
+  .description('Page loader utility')
   .usage('[options]')
   .option('-o, --output <dir>', 'output dir')
   .action(() => {
