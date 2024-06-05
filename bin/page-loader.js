@@ -13,7 +13,6 @@ program
     loader(program.args[0], program.opts().output)
     .then(({filePath}) => {
       console.log(`URL successfully downloaded to ${filePath}`);
-      process.exit(1);
     })
     .catch((error) => {
       console.error(error.message);

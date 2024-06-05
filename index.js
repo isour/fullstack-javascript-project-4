@@ -2,15 +2,13 @@ import axios from "axios";
 import path from "path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
-// import log from './src/debug.js';
-
-import debug from 'debug';
-const log = debug('page-loader');
+import log from './src/debug.js';
+import Listr from 'listr';
 
 const getFileName = (url) => {
-  const myURL = new URL(url);
-  const protocol = myURL.protocol;
-  return myURL.href.replace(protocol, "").replace("//", "").replace(/\W/g, "-");
+  const myURL = new URL(url.trim());
+  const myPath = myURL.pathname === '/' ? '' : myURL.pathname;
+  return (myURL.hostname + myPath).replaceAll(".", "-").replaceAll("/", "-")
 };
 
 const getWorkingDirectory = (fileOutput) => {
@@ -52,7 +50,7 @@ const isValidUrl = (url, currentHostname) => {
 };
 
 const getAssetsPath = (fileURL, catalogPath, hostname) => {
-  log(fileURL, catalogPath, hostname)
+  log('ASSET', fileURL, catalogPath, hostname)
   const filePath = (new URL(fileURL, hostname)).pathname;
   const ext = path.extname(fileURL) ? '' : '.html';
   
@@ -78,7 +76,6 @@ const processAssets = (htmlData, outputPath, hostname, catalogPath) => {
     const attrName = tagToAttrMap[tagName];
     const attrURL = element.getAttribute(attrName);
 
-    console.log(isValidUrl(attrURL, hostname), attrURL, hostname)
     if (!isValidUrl(attrURL, hostname)) {
       const filePath = getAssetsPath(attrURL, outputPath, hostname);
       assetsList.push({
@@ -90,7 +87,6 @@ const processAssets = (htmlData, outputPath, hostname, catalogPath) => {
   });
 
   return new Promise((resolve) => {
-    console.log(assetsList, 'asesertasa')
     resolve({ html: dom.serialize(), assets: assetsList });
   });
 };
@@ -99,6 +95,7 @@ export const loader = (url, outputDirectory = process.cwd()) => {
   log('url: ', url);
   log('directory: ', outputDirectory);
   const fileName = getFileName(url);
+  log('fileName: ', fileName);
   const urlObject = new URL(url);
   const hostname = `${urlObject.protocol}//${urlObject.hostname}`;
 
@@ -117,16 +114,27 @@ export const loader = (url, outputDirectory = process.cwd()) => {
       return processAssets(response.data, fileName, hostname, catalogPath);
     })
     .then(({ html, assets }) => {
-      assets.map(({ fileURL: assetURL, filePath: assetPath }) => {
-        return axios
-          .get(assetURL, { responseType: "arraybuffer" })
-          .then(({ data: assetData }) => {
-            // log('write asset file:', assetURL, 'to:', assetPath);
-            return writeFile(assetPath, assetData);
-          });
-      });
       log('write html file:', filePath);
-      return writeFile(filePath, html, "utf8");
+      writeFile(filePath, html, "utf8");
+      return {
+        assets
+      }
+    })
+    .then(({ assets }) => {
+      const listTasks = assets.map(({ fileURL: assetURL, filePath: assetPath }) => {
+        return {
+          title: assetURL,
+          task: () => {
+            axios
+              .get(assetURL, { responseType: "arraybuffer" })
+              .then(({ data: assetData }) => {
+                return writeFile(assetPath, assetData);
+              })
+          },
+        };
+      });
+      const listr = new Listr(listTasks, { concurrent: true });
+      return listr.run();
     })
     .then(() => {
       return {
